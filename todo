@@ -1,0 +1,11 @@
+// Must do
+// %score Refresh   -- after the monthly reward has been awarded. Admin can refresh the scoreboard
+
+// LATER
+// %role create     -- After achived certain amount of score. You can create your own role. (Not monthly score)
+// %role color      -- Change the color of your role
+// %role assign     -- Assign the role to someone
+// %role remove     -- Remove your role, and maybe create a new one?
+// %score give      -- give some of your score to someone (does not effect monthly score)
+// %event info      -- info about specific event
+// %event mine      -- show all of your own events
