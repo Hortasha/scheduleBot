@@ -1,7 +1,7 @@
 const axios = require("axios");
 
 //API data
-const url = 'http://localhost/:1337';
+const url = 'http://eidesite.com:1337';
 const mail = "eidemartin_303@hotmail.com";
 const password = "GMwUsxmJVYBFM8s";
 let APItoken = "";
