@@ -6,7 +6,7 @@ const score = require('./commands/score');
 const event = require('./commands/event');
 
 //Bot Data
-const token = "NjQzODk1NDQyNjIyNjQ0MjU1.XdQS3w.g4Bzv0lwpRwdUczkZy5PZRgDk98";
+const token = "NjQzODk1NDQyNjIyNjQ0MjU1.XdRFGQ.wiBlsSlbvkwSE4ObMj8BbnUycG8";
 const client = new Discord.Client();
 
 //Bot ready

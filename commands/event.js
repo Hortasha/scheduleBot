@@ -15,7 +15,7 @@ async function createEvent(message, args, client) {
         let res = await api.post(
             'events',
             {
-                eventstart: date,
+                eventstart: convertDate(args[1]),
                 ownerid: message.author.id,
                 title: args[0],
                 description: args[2] ? args[2] : ''
