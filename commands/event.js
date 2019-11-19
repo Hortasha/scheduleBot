@@ -6,19 +6,11 @@ const sendMessage = require('./../messages');
 const eventReward = 3;
 
 async function createEvent(message, args, client) {
-
     //Split up arguments for event creation
     args = args.join(' ').split(', ');
 
-    //Generate date from input
-    let date;
-    if(args.length > 1) {
-        date = convertDate(new Date(), args[1]);
-    }
-
     //Check that it is atleast 2-3 arguments seperated by comma and that the date is yet to come
-    if((args.length === 2 || args.length === 3) && new Date(date).getTime() > (new Date().getTime() + (60*60*1000))) {
-
+    if((args.length === 2 || args.length === 3) && convertDate(args[1]) > newDate().getTime()) {
         //Add event to database
         let res = await api.post(
             'events',
@@ -36,7 +28,7 @@ async function createEvent(message, args, client) {
             sendMessage.sendMessage(
                 message.channel,
                 `Event Added`,
-                `The event: **${res.data.title}**, will start at ${new Date(res.data.eventstart).toUTCString().substring(0, new Date(res.data.eventstart).toUTCString().length - 4)} GMT+1\n**Event ID: ${res.data.id}** created by ${client.users.get(res.data.ownerid).username}`
+                `The event: **${res.data.title}**, will start at ${new Date(res.data.eventstart).toUTCString().substring(0, new Date(res.data.eventstart).toString().length - 4)} GMT+1\n**Event ID: ${res.data.id}** created by ${client.users.get(res.data.ownerid).username}`
             )
         }
     } else {
@@ -129,9 +121,9 @@ async function changeEvent(message, args, client) {
     
     //Check if event exist, check if author is admin or owner of event.
     if(event.data.length === 1 && (message.author.id == event.data[0].ownerid || message.member.hasPermission('checkAdmin'))) {
-        
+
         //Manipulate new value data into array
-        let newValue = args.slice(1).join(' ').split(':');
+        let newValue = args.slice(1).join(' ').split('=');
         newValue[0].toLowerCase()
 
         //Create an object and store new value into object
@@ -144,8 +136,7 @@ async function changeEvent(message, args, client) {
                 newdata.description = newValue[1];
             }
             if(newValue[0] === 'date') {
-                let date = new Date();
-                newdata.eventstart = convertDate(date, newValue[1]);
+                newdata.eventstart = convertDate(newValue[1]);
             }
         }
 
@@ -178,14 +169,14 @@ async function removeEvent(message, args, client) {
     if(event.data.length === 1 && (message.author.id == event.data[0].ownerid || message.member.hasPermission('checkAdmin'))) {
 
         // Remove event and users registered to that event
-        let res = await api.delete('events', args[0]);
+        await api.delete('events', args[0]);
         removeRegisteredFromEvent(args[0]);
 
         // SUCCESS
         sendMessage.sendMessage(
             message.channel,
             `Event Deleted`,
-            `The event: **${event.data[0].title}**, was deleted by ${message.author.username}\n\nEvent was created by ${client.users.get(res.data.ownerid).username}`
+            `The event: **${event.data[0].title}**, was deleted by ${message.author.username}\n\nEvent was created by ${client.users.get(event.data[0].ownerid).username}`
         )
     } else {
         // FAIL
@@ -253,7 +244,6 @@ async function approveEvent(message, arg, client) {
 
     // Get event by ID
     let res = await api.get(`events/${arg}`)
-    console.log(res.data);
     if(res.data.status && message.member.hasPermission('checkAdmin') && res.data.status == 1) {
         let participants = await api.get(`registrations`, `event=${arg}`);
 
@@ -283,7 +273,7 @@ async function approveEvent(message, arg, client) {
         sendMessage.sendMessage(
             message.channel,
             `${res.data.title} has been approved.`,
-            `**These participants recive ${eventReward} points each:**\n${participantNames.join(', ')}\n\nThe event organizer ${ownerName} recive ${eventReward*participants.data.length} points.`
+            `**These participants receive ${eventReward} points each:**\n${participantNames.join(', ')}\n\nThe event organizer ${ownerName} receive ${eventReward*participants.data.length} points.`
         )
     } else {
         sendMessage.sendMessage(
@@ -294,16 +284,55 @@ async function approveEvent(message, arg, client) {
     }
 }
 
+async function viewEvent(message, arg, client) {
+    //check if arguments are missing
+    if(arg == undefined || arg.length === 0) {
+        sendMessage.missingArguments(message);
+        return;
+    }
+
+    let event = await api.get(`events/${arg}`);
+    let registrations = await api.get(`registrations`, `event=${arg}`);
+    
+    if(event.response.status === 404) {
+        sendMessage.sendMessage(
+            message.channel,
+            `Invalid Command`,
+            `For help check out: \`%help\`\n\nThe Event ID must be valid.`
+        )
+    }
+
+    if(event.data.id) {
+        let usernames = [];
+        for(const users of registrations.data) {
+            usernames.push(client.users.get(users.participant).username);
+        }
+        let description = '';
+        if(event.data.description !== '') {
+            description = `\n\nDescription:\n${event.data.description}`
+        }
+
+        // SUCCESS
+        sendMessage.sendMessage(
+            message.channel,
+            `Information about ${event.data.title}`,
+            `Starts: ${new Date(event.data.eventstart).toUTCString().substring(0, new Date(event.data.eventstart).toUTCString().length - 4)} GMT+1\n\n**Event ID: ${event.data.id}** - created by ${client.users.get(event.data.ownerid).username}${description}\n\nThese people have registered:\n${usernames.join(', ')} and ${client.users.get(event.data.ownerid).username}`
+        )
+
+    }
+}
 
 //Convert date DD-MM-YYYY HH:MM to date format
-function convertDate(date, arg) {
-    date.setDate(arg.substring(0,2));
-    date.setFullYear(parseInt(arg.substring(6,10)));
-    date.setMonth(parseInt(arg.substring(3,5))-1);
-    date.setHours(parseInt(arg.substring(11,13))+1);
-    date.setMinutes(arg.substring(14,16));
-    date.setSeconds(0);
+function convertDate(arg) {
+    let date = new Date(Date.UTC(arg.substring(6,10), parseInt(arg.substring(3,5))-1, arg.substring(0,2), arg.substring(11,13), arg.substring(14,16), 0, 0));
     return date;
+}
+
+function newDate() {
+    var date = new Date(); 
+    var now_utc =  Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(),
+    date.getHours(), date.getMinutes(), date.getSeconds());
+    return new Date(now_utc);
 }
 
 //Removing all registered users from specific event
@@ -327,5 +356,8 @@ module.exports = {
     leaveEvent: leaveEvent,
     joinEvent: joinEvent,
     doneEvent: doneEvent,
-    approveEvent: approveEvent
+    approveEvent: approveEvent,
+    newDate: newDate,
+    convertDate: convertDate,
+    viewEvent: viewEvent
 }

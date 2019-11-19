@@ -6,7 +6,7 @@ const score = require('./commands/score');
 const event = require('./commands/event');
 
 //Bot Data
-const token = "NjQzODk1NDQyNjIyNjQ0MjU1.XdMSxQ.v4J-vLEmVm4YO7H-Ez08TAJpLBI";
+const token = "NjQzODk1NDQyNjIyNjQ0MjU1.XdQS3w.g4Bzv0lwpRwdUczkZy5PZRgDk98";
 const client = new Discord.Client();
 
 //Bot ready
@@ -17,7 +17,7 @@ client.on('ready', () => {
     client.setInterval(()=>{
         doInterval();
         api.login();
-    }, 3600000);
+    }, 4*60*60*1000);
 });
 
 
@@ -71,7 +71,7 @@ async function doInterval() {
 
     //List next 5 upcoming events
     event.listEvent({
-        channel: client.channels.get('646092812194021436')
+        channel: client.channels.get('537724736826900483')
     }, client);
 
 }
@@ -83,7 +83,7 @@ async function findCompletedEvents() {
         let res = await api.get('events',`status=0&_sort=eventstart:ASC&_limit=1`)
 
         //If event date has passed mark it as complete
-        if(res.data.length > 0 && new Date(res.data[0].eventstart).getTime() < (new Date().getTime() + (60*60*1000))) {
+        if(res.data.length > 0 && new Date(res.data[0].eventstart).getTime() < event.newDate().getTime()) {
             await api.put('events',res.data[0].id,
             {
                 status: 1
@@ -158,6 +158,10 @@ function commands(message) {
                 case 'approve':
                     event.approveEvent(message, args.slice(2), client);
                     break;
+
+                case 'info':
+                    event.viewEvent(message, args.slice(2), client);
+                    break;
                 
                 default:
                     break;
@@ -201,7 +205,7 @@ function help(message, args) {
                     },
                     {
                         title: '%event change <event id> <title/description/date>:<new value>',
-                        text: `Change Event.\n\n*Example:*\n\`%event change 1337 title:Dinner Time\`\n\nYou can change these values:\ntitle:<text>\ndescription:<text>\ndate:<DD-MM-YYYY HH:MM>\nYou can only change one thing for every change command you run`,
+                        text: `Change Event.\n\n*Example:*\n\`%event change 1337 title=Dinner Time\`\n\nYou can change these values:\ntitle=<text>\ndescription=<text>\ndate=<DD-MM-YYYY HH:MM>\nYou can only change one thing for every change command you run`,
                         inline: false
                     },
                     {

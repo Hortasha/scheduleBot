@@ -25,7 +25,7 @@ function missingArguments(message) {
     sendMessage(
         message.channel,
         `Invalid Command`,
-        `For help check out: \`%help\`\n\nDid you forget the arguments?.`
+        `For help check out: \`%help\`\n\nSomething seems to be missing in your command.`
     )
 }
 

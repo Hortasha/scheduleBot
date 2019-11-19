@@ -34,10 +34,11 @@ module.exports.get = (target, query = '') => {
         }
     })
     .then(res => {
-        return res
+        return res;
     })
     .catch(err => {
         console.log(err.response.data);
+        return err;
     })
 }
 
