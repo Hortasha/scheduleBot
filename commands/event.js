@@ -52,33 +52,38 @@ async function joinEvent(message, arg, client) {
     //get event from database
     let res = await api.get(`events/${arg}`);
     
-    //get if person allready is registered on event
-    let regCheck = await api.get(`registrations`,`event=${arg}&participant=${message.author.id}`)
-
-    //If event exist, if not registered allready, if person is not the owner of event and that the event is not completed
-    if(res.data.id && regCheck.data.length === 0 && res.data.ownerid != message.author.id && res.data.status === 0) {
-        
-        //Register for event
-        await api.post(
-        'registrations',
-        {
-            participant: message.author.id,
-            event: arg
-        });
-
-        //SUCCESS
-        sendMessage.sendMessage(
-            message.channel,
-            `${message.author.username} registered for ${res.data.title}`,
-            `Looking forward to seeing you on the event. To view upcoming events, use: \`%event list\`\n\n**Event ID: ${res.data.id}** - created by ${client.users.get(res.data.ownerid).username}`
-        )
+    //Event does not exist
+    if(res.status !== 200) {
+        sendMessage.noDataFound(message);
     } else {
-        //FAIL
-        sendMessage.sendMessage(
-            message.channel,
-            `Invalid Command`,
-            `For help check out: \`%help\`\n\nYou can not:\n- Register for your own event\n- Register more than once\n- Register for an event that does not exist\n- Register for an event that has happened`
-        )
+        //get if person allready is registered on event
+        let regCheck = await api.get(`registrations`,`event=${arg}&participant=${message.author.id}`)
+
+        //If event exist, if not registered allready, if person is not the owner of event and that the event is not completed
+        if(regCheck.data.length === 0 && res.data.ownerid != message.author.id && res.data.status === 0) {
+            
+            //Register for event
+            await api.post(
+            'registrations',
+            {
+                participant: message.author.id,
+                event: arg
+            });
+
+            //SUCCESS
+            sendMessage.sendMessage(
+                message.channel,
+                `${message.author.username} registered for ${res.data.title}`,
+                `Looking forward to seeing you on the event. To view upcoming events, use: \`%event list\`\n\n**Event ID: ${res.data.id}** - created by ${client.users.get(res.data.ownerid).username}`
+            )
+        } else {
+            //FAIL
+            sendMessage.sendMessage(
+                message.channel,
+                `Invalid Command`,
+                `For help check out: \`%help\`\n\nYou can not:\n- Register for your own event\n- Register more than once\n- Register for an event that has happened`
+            )
+        }
     }
 }
 
@@ -89,30 +94,35 @@ async function leaveEvent(message, arg, client) {
         return;
     }
 
-    // Check if registered to event
-    let res = await api.get('registrations', `event=${arg}&participant=${message.author.id}`)
-    if (res.data.length === 1) {
+    let event = await api.get(`events/${arg}`);
 
-        // Get information about the event for response
-        let event = await api.get(`events/${arg}`)
-
-        // Delete registration
-        await api.delete('registrations', res.data[0].id);
-
-        //SUCCESS
-        sendMessage.sendMessage(
-            message.channel,
-            `${message.author.username} unregistered from ${event.data.title}`,
-            `Sorry to see you leave, but there will be more events in the future.\n\n**Event ID: ${event.data.id}** - created by ${client.users.get(event.data.ownerid).username}`
-        )
-
+    //Event does not exist
+    if(event.status !== 200) {
+        sendMessage.noDataFound(message);
     } else {
-        //FAIL
-        sendMessage.sendMessage(
-            message.channel,
-            `Invalid Command`,
-            `For help check out: \`%help\`\n\nYou can not:\n- Leave an event that does not exist\n- Leave an event you are not registered to\n- Leave an event you own. (Try deleting the event instead)\n`
-        )
+
+        // Check if registered to event
+        let res = await api.get('registrations', `event=${arg}&participant=${message.author.id}`)
+        if (res.data.length === 1) {
+
+            // Delete registration
+            await api.delete('registrations', res.data[0].id);
+
+            //SUCCESS
+            sendMessage.sendMessage(
+                message.channel,
+                `${message.author.username} unregistered from ${event.data.title}`,
+                `Sorry to see you leave, but there will be more events in the future.\n\n**Event ID: ${event.data.id}** - created by ${client.users.get(event.data.ownerid).username}`
+            )
+
+        } else {
+            //FAIL
+            sendMessage.sendMessage(
+                message.channel,
+                `Invalid Command`,
+                `For help check out: \`%help\`\n\nYou can not:\n- Leave an event that does not exist\n- Leave an event you are not registered to\n- Leave an event you own. (Try deleting the event instead)\n`
+            )
+        }
     }
 }
 
@@ -243,44 +253,53 @@ async function approveEvent(message, arg, client) {
     }
 
     // Get event by ID
-    let res = await api.get(`events/${arg}`)
-    if(res.data.status && message.member.hasPermission('checkAdmin') && res.data.status == 1) {
-        let participants = await api.get(`registrations`, `event=${arg}`);
+    let res = await api.get(`events/${arg}`);
 
-        // Give points to participants
-        let participantNames = [];
-        for(const participant of participants.data) {
-            let user = await api.get('discordusers', `userid=${participant.participant}`)
-            await api.put(`discordusers`, user.data[0].id, {
-                points: user.data[0].points + eventReward,
-                totalpoints: user.data[0].totalpoints + eventReward
-            })
-            participantNames.push(client.users.get(user.data[0].userid).username);
-        }
-
-        // Give points to owner
-        let owner = await api.get('discordusers', `userid=${res.data.ownerid}`);
-        await api.put(`discordusers`, owner.data[0].id, {
-            points: owner.data[0].points + (eventReward * participants.data.length),
-            totalpoints: owner.data[0].totalpoints + (eventReward * participants.data.length)
-        });
-        let ownerName = client.users.get(owner.data[0].userid).username;
-
-        // Change status
-        await api.put(`events`, arg, {status: 2});
-
-        // SUCCESS
-        sendMessage.sendMessage(
-            message.channel,
-            `${res.data.title} has been approved.`,
-            `**These participants receive ${eventReward} points each:**\n${participantNames.join(', ')}\n\nThe event organizer ${ownerName} receive ${eventReward*participants.data.length} points.`
-        )
+    //Event does not exist
+    if(res.status !== 200) {
+        sendMessage.noDataFound(message)
     } else {
-        sendMessage.sendMessage(
-            message.channel,
-            `Invalid Command`,
-            `For help check out: \`%help\`\n\nYou can not:\n- Approve event if you are not an admin\n- Approve events that are not marked as done`
-        )
+
+        //Check if admin and valid event
+        if(message.member.hasPermission('checkAdmin') && res.data.status == 1) {
+            let participants = await api.get(`registrations`, `event=${arg}`);
+
+            // Give points to participants
+            let participantNames = [];
+            for(const participant of participants.data) {
+                let user = await api.get('discordusers', `userid=${participant.participant}`)
+                await api.put(`discordusers`, user.data[0].id, {
+                    points: user.data[0].points + eventReward,
+                    totalpoints: user.data[0].totalpoints + eventReward
+                })
+                participantNames.push(client.users.get(user.data[0].userid).username);
+            }
+
+            // Give points to owner
+            let owner = await api.get('discordusers', `userid=${res.data.ownerid}`);
+            await api.put(`discordusers`, owner.data[0].id, {
+                points: owner.data[0].points + (eventReward * participants.data.length),
+                totalpoints: owner.data[0].totalpoints + (eventReward * participants.data.length)
+            });
+            let ownerName = client.users.get(owner.data[0].userid).username;
+
+            // Change status
+            await api.put(`events`, arg, {status: 2});
+
+            // SUCCESS
+            sendMessage.sendMessage(
+                message.channel,
+                `${res.data.title} has been approved.`,
+                `**These participants receive ${eventReward} points each:**\n${participantNames.join(', ')}\n\nThe event organizer ${ownerName} receive ${eventReward*participants.data.length} points.`
+            )
+        } else {
+            // FAIL
+            sendMessage.sendMessage(
+                message.channel,
+                `Invalid Command`,
+                `For help check out: \`%help\`\n\nYou can not:\n- Approve event if you are not an admin\n- Approve events that are not marked as done`
+            )
+        }
     }
 }
 
@@ -294,32 +313,64 @@ async function viewEvent(message, arg, client) {
     let event = await api.get(`events/${arg}`);
     let registrations = await api.get(`registrations`, `event=${arg}`);
     
-    if(event.response.status === 404) {
+    //Event does not exist
+    if(event.status !== 200) {
+        sendMessage.noDataFound(message);
+        return;
+    }
+
+    //Find users
+    let usernames = [];
+    for(const users of registrations.data) {
+        usernames.push(client.users.get(users.participant).username);
+    }
+
+    //Set Description
+    let description = '';
+    if(event.data.description !== '') {
+        description = `\n\nDescription:\n${event.data.description}`
+    }
+
+    // SUCCESS
+    sendMessage.sendMessage(
+        message.channel,
+        `Information about ${event.data.title}`,
+        `Starts: ${new Date(event.data.eventstart).toUTCString().substring(0, new Date(event.data.eventstart).toUTCString().length - 4)} GMT+1\n\n**Event ID: ${event.data.id}** - created by ${client.users.get(event.data.ownerid).username}${description}\n\nThese people have registered:\n${usernames.join(', ')} and ${client.users.get(event.data.ownerid).username}`
+    )
+}
+
+async function unregisterUser(message, args, client) {
+    if(args.length < 2) {
+        sendMessage.missingArguments(message);
+        return;
+    }
+
+    let event = await api.get(`events/${args[0]}`);
+    let registered = await api.get(`registrations`, `event=${args[0]}&participant=${message.mentions.users.first().id}`);
+
+    //Event does not exist
+    if(event.status !== 200 || registered.data.length !== 1) {
+        sendMessage.noDataFound(message);
+        return;
+    }
+
+    if((message.author.id == event.data.ownerid || message.member.hasPermission('checkAdmin')) == false) {
         sendMessage.sendMessage(
             message.channel,
             `Invalid Command`,
-            `For help check out: \`%help\`\n\nThe Event ID must be valid.`
+            `For help check out: \`%help\`\n\nYou can not:\n- Unregister someone unless you are not an admin or owner of the event`
         )
+        return;
     }
+    console.log(message.mentions.users.first().id);
+    await api.delete(`registrations`, registered.data[0].id);
+    sendMessage.sendMessage(
+        message.channel,
+        `${message.mentions.users.first().username} removed from ${event.data.title}`,
+        `${message.author.username} has removed ${message.mentions.users.first().username} from ${event.data.title}.`
+    )
 
-    if(event.data.id) {
-        let usernames = [];
-        for(const users of registrations.data) {
-            usernames.push(client.users.get(users.participant).username);
-        }
-        let description = '';
-        if(event.data.description !== '') {
-            description = `\n\nDescription:\n${event.data.description}`
-        }
 
-        // SUCCESS
-        sendMessage.sendMessage(
-            message.channel,
-            `Information about ${event.data.title}`,
-            `Starts: ${new Date(event.data.eventstart).toUTCString().substring(0, new Date(event.data.eventstart).toUTCString().length - 4)} GMT+1\n\n**Event ID: ${event.data.id}** - created by ${client.users.get(event.data.ownerid).username}${description}\n\nThese people have registered:\n${usernames.join(', ')} and ${client.users.get(event.data.ownerid).username}`
-        )
-
-    }
 }
 
 //Convert date DD-MM-YYYY HH:MM to date format
@@ -340,11 +391,7 @@ async function removeRegisteredFromEvent(eventid) {
     let users = await api.get(`registrations`,`event=${eventid}`)
     
     for(let user of users.data) {
-        api.delete
-        (
-            `registrations`,
-            user.id
-        )
+        api.delete(`registrations`, user.id)
     }
 }
 
@@ -359,5 +406,6 @@ module.exports = {
     approveEvent: approveEvent,
     newDate: newDate,
     convertDate: convertDate,
-    viewEvent: viewEvent
+    viewEvent: viewEvent,
+    unregisterUser: unregisterUser
 }

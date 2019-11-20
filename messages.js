@@ -29,7 +29,17 @@ function missingArguments(message) {
     )
 }
 
+//No success API call
+function noDataFound(message) {
+    sendMessage(
+        message.channel,
+        `Invalid Command`,
+        `For help check out: \`%help\`\n\nNo data was found on the input you have given`
+    )
+}
+
 module.exports = {
     sendMessage: sendMessage,
-    missingArguments: missingArguments
+    missingArguments: missingArguments,
+    noDataFound: noDataFound
 }

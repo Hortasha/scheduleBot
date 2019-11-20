@@ -6,7 +6,7 @@ const score = require('./commands/score');
 const event = require('./commands/event');
 
 //Bot Data
-const token = "NjQzODk1NDQyNjIyNjQ0MjU1.XdRFGQ.wiBlsSlbvkwSE4ObMj8BbnUycG8";
+const token = "NjQzODk1NDQyNjIyNjQ0MjU1.XdWCDg.FSXtIrAdMe8WTnMHcV0WlFvaxzM";
 const client = new Discord.Client();
 
 //Bot ready
@@ -71,7 +71,7 @@ async function doInterval() {
 
     //List next 5 upcoming events
     event.listEvent({
-        channel: client.channels.get('537724736826900483')
+        channel: client.channels.get('646092812194021436')
     }, client);
 
 }
@@ -163,6 +163,11 @@ function commands(message) {
                     event.viewEvent(message, args.slice(2), client);
                     break;
                 
+                case 'unregister':
+                    event.unregisterUser(message, args.slice(2), client);
+                    break;
+
+                
                 default:
                     break;
             }
@@ -221,6 +226,16 @@ function help(message, args) {
                     {
                         title: '%event leave <event id>',
                         text: `Leave a event.\n\n*Example:*\n\`%event leave 1337\`\n\nEvent ID is displayed when creating event, listing events, changing events or viewing an event.`,
+                        inline: false
+                    },
+                    {
+                        title: '%event unregister <Event ID> <usertag>',
+                        text: `Unregister someone from a event.\n\n*Example:*\n\`%event unregister <event ID> Schedule Bot#6572\`\n\nOnly admins and owners of events are able to remove registered users from an event`,
+                        inline: false
+                    },
+                    {
+                        title: '%event info <Event ID>',
+                        text: `Show more detailed information about a event.\n\n*Example:*\n\`%event info <event ID>\`\n\nThis command will display all registered users as well as event description.`,
                         inline: false
                     },
                     {
