@@ -167,7 +167,6 @@ function commands(message) {
                     event.unregisterUser(message, args.slice(2), client);
                     break;
 
-                
                 default:
                     break;
             }

@@ -48,7 +48,7 @@ async function scoreTo(message) {
         }
 
         //Check if it has been over 24 hours sence last time, and that reciver exist
-        if((event.newDate().getTime() - new Date(res.data[author].lastgive).getTime() > 0) && res.data.length === 2) {
+        if((event.newDate().getTime() - new Date(res.data[author].lastgive).getTime() > (24*60*60*1000)) && res.data.length === 2) {
         
             //Give points to reciver
             let updated = await api.put(
