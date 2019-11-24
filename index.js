@@ -6,7 +6,7 @@ const score = require('./commands/score');
 const event = require('./commands/event');
 
 //Bot Data
-const token = "NjQzODk1NDQyNjIyNjQ0MjU1.XdWCDg.FSXtIrAdMe8WTnMHcV0WlFvaxzM";
+const token = "NjQzODk1NDQyNjIyNjQ0MjU1.XdphmQ.4pslsCaHt97gTZcC0mXgOmyCn-E";
 const client = new Discord.Client();
 
 //Bot ready
@@ -113,11 +113,23 @@ function commands(message) {
             switch(args[1].toLowerCase()) {
                 case 'to':
                     score.scoreTo(message);
-                    break
+                    break;
                 
                 case 'mine':
                     score.scoreMine(message);
                     break;
+
+                case 'give':
+                    score.giveScore(message, args.slice(2));
+                    break;
+
+                case 'refresh':
+                    score.refreshScore(message, client);
+                    break;
+
+                case 'reset':
+                        score.resetScore(message, client);
+                        break;
                 
                 default:
                     break;
@@ -275,6 +287,21 @@ function help(message, args) {
                     {
                         title: '%score mine',
                         text: `You can use this command to view your own score`,
+                        inline: false
+                    },
+                    {
+                        title: '%score give <usertag> <number>',
+                        text: `Give someone some of your total score.\n\n*Example:*\n\`%score give Schedule Bot#6572 42\`\n\nThe person you give it to must be tagged. This does not count toward the scoreboard`,
+                        inline: false
+                    },
+                    {
+                        title: '%score refresh',
+                        text: `Refreshes the scoreboard`,
+                        inline: false
+                    },
+                    {
+                        title: '%score reset',
+                        text: `Refreshes all the scores.`,
                         inline: false
                     }
                 ]
